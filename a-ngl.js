@@ -329,7 +329,7 @@ AFRAME.registerComponent('ngl-handler', {
         case 189: // -
           tarEl.setAttribute(
             'ngl-mol',{
-              repAlgebra: "rotein=backbone++dna=backbone=atomindex++dna=base"
+              repAlgebra: "protein=backbone++dna=backbone=atomindex++dna=base"
           });
           break;
         case 187: // =
