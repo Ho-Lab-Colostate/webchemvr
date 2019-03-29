@@ -1,0 +1,139 @@
+<html>
+  <head>
+	  <title>a-ngl</title>
+    <!-- Original found at https://a-ngl.glitch.me/ -->
+    <!-- A frame -->
+    <script src="https://aframe.io/releases/0.8.2/aframe.min.js"></script>
+    <script src="https://cdn.rawgit.com/donmccurdy/aframe-extras/v4.1.2/dist/aframe-extras.min.js"></script>
+    <!-- Custom scripts -->
+    <script src="./ethans.js"></script>
+	  <!-- NGL for Aframe proof of concept -->
+    <script src="./a-ngl.js"></script>
+    <script src="./ngl-dev.js"></script>
+    <!-- Sharedspace 
+    <script src="https://unpkg.com/aframe-sharedspace-component@1.0.1/dist/aframe-sharedspace-component.min.js"></script>-->
+    <!-- Select bar component 
+    <script src="https://rawgit.com/kfarr/aframe-select-bar-component/master/dist/aframe-select-bar-component.min.js"></script>-->
+    <!-- SUPER HANDS (needs A frame 8.2) -->
+    <script src="https://unpkg.com/super-hands@3.0.0/dist/super-hands.min.js"></script>
+    <!-- Motion capture 
+    <script src="https://unpkg.com/aframe-motion-capture-components/dist/aframe-motion-capture-components.min.js"></script>-->
+    <!-- A frame GUI component -->
+    <script src="https://rawgit.com/rdub80/aframe-gui/master/dist/aframe-gui.min.js"></script>
+    <script>
+    // window-level logic
+      
+    window.openDropdown = function() {
+      console.log("opendropdown");
+      var animateDropdown = document.getElementById("dropani");
+      var animateDropdown1 = document.getElementById("dropani1");
+      var animateDropdownVal = document.getElementById("dropvalani");
+      var animateDropdownVal1 = document.getElementById("dropvalani1");
+      var animateDropdownVal2 = document.getElementById("dropvalani2");
+      animateDropdownVal.emit('opendropdown');
+      animateDropdownVal1.emit('opendropdown');
+      animateDropdownVal2.emit('opendropdown');   
+      animateDropdown1.emit('opendropdown');
+      animateDropdown.emit('opendropdown');
+    }; 
+    
+    window.changeMol = function(targetSel,newMol) {
+      targetEl = queryNglMol(targetSel);
+      targetEl.setAttribute('ngl-mol',{src: newMol});
+    };
+      
+    </script>
+  </head>	
+  <body>
+    <!-- scene must have light="defaultLightsEnabled: true" to render correctly on Safari mobile VR mode -->
+	  <a-scene ngl-handler light="defaultLightsEnabled: true" background="color: #D3D3D3">
+           <!--avatar-recorder mc-patch
+           avatar-replayer="loop: false; src: https://cdn.glitch.com/ca7f3c55-86c2-40c2-b3e1-e29559d1d1e8%2F8.json?1553647587046">-->
+      <a-assets>
+      </a-assets>
+
+      <!-- PLAYER -->
+      <a-entity id="cameraRig">
+        <a-camera wasd-controls-enabled="true" id="camera">
+          <a-cursor></a-cursor>
+        </a-camera>
+        <!-- SUPERHANDS controllers -->
+        <a-entity id="lefthand" sphere-collider="objects: .mol-wrapper" super-hands hand-controls="left"></a-entity>
+        <a-entity id="righthand" sphere-collider="objects: .mol-wrapper" super-hands hand-controls="right"></a-entity>
+        <!-- SELECT BAR hands 
+        <a-entity id="leftController" camera-transform-controls-hand="hand:left" vive-controls="hand: left"
+                  oculus-touch-controls="hand: left" windows-motion-controls="hand: left">
+            <a-entity select-bar="controllerID: leftController" id="menuActions" scale="0.7 0.7 0.7"
+                      position="0 0.05 0.08" rotation="-85 0 0">
+                <optgroup label="Actions" value="actions">
+                    <option value="teleport" src="icon_teleport.png" selected>Teleport</option>
+                    <option value="save" src="icon_save.png">Save</option>
+                    <option value="saveAs" src="icon_saveAs.png">Save As Copy</option>
+                    <option value="new" src="icon_new.png">New</option>
+                    <option value="erase" src="icon_erase.png">Erase</option>
+                    <option value="inspect" src="icon_inspect.png">Inspect</option>
+                    <option value="exit" src="iocn_exit.png">Exit</option>
+                </optgroup>
+            </a-entity>
+        </a-entity>
+        <a-entity id="rightController" camera-transform-controls-hand="hand:right" vive-controls="hand: right"
+                  oculus-touch-controls="hand: right" windows-motion-controls="hand: right"></a-entity>-->
+      </a-entity>
+
+      <!-- Molecules -->
+      <a-box rotation="0 0 0" position="0 1.5 -.6" depth="0.2" width="0.2" height="0.2"
+             hoverable grabbable stretchable draggable droppable
+             wireframe="true" color="grey">
+          <!--<a-entity ngl-mol="src: rcsb://5GKP.mmtf" position="0 0 0" scale="0.006 0.006 0.006"></a-entity>-->
+          <a-entity ngl-mol="src: rcsb://1crn;
+                             repAlgebra: protein=cartoon=bfactor; 
+                             wrapperOpacity: 0.2"
+                    position="0 0 0" scale="0.006 0.006 0.006"></a-entity>
+      </a-box>
+
+      <!-- GUI MENU -->
+      <a-entity position="2 1.5 -4" rotation="0 0 0">
+        <a-entity id="dropdownContainer" position="0 0 -1">
+          <a-gui-flex-container flex-direction="row" justify-content="center" align-items="normal"
+                                component-padding="0.1" opacity="0" width="2.5" height="0.75"
+                                position="0 0.375 0" rotation="0 0 0">
+            <a-gui-icon-label-button width="2.8" height="0.75" onclick="openDropdown" icon="android-menu"
+              value="Visual Settings" font-family="Arial" visible="true">
+              <a-animation attribute="rotation" id="dropani" begin="opendropdown" dur="1000"
+                           fill="forwards" to="180 0 0"></a-animation>
+              <a-animation attribute="visible" id="dropani1" begin="opendropdown"
+                           fill="forwards" delay="500" to="false"></a-animation>						
+              <a-animation attribute="rotation" id="dropaniback" begin="closedropdown"
+                           dur="1000" fill="forwards" to="0 0 0"></a-animation>
+              <a-animation attribute="visible" id="dropani1back" begin="closedropdown"
+                           fill="forwards" delay="500" to="true"></a-animation>	
+            </a-gui-icon-label-button>				
+          </a-gui-flex-container>
+          <a-gui-flex-container flex-direction="column" justify-content="center" align-items="normal"
+                                component-padding="0.1" opacity="0" width="2.5" height="0.75"
+                                position="0 0 -0.15" rotation="0 0 0" scale="1 0.001 0.001" visible="false">
+            <a-gui-button width="2.5" height="0.75" value="5GKP" font-family="Arial"
+                          onclick="changeMol('rcsb://1crn', 'rcsb://5gkp');" ></a-gui-button>
+            <a-gui-button width="2.5" height="0.75" onclick="cartoon" value="Cartoon" font-family="Arial"></a-gui-button>
+            <a-gui-button width="2.5" height="0.75" onclick="ball" value="Ball+Stick" font-family="Arial"></a-gui-button>
+            <a-gui-icon-button width="0.5" height="0.5" onclick="closeDropdown" icon="android-close"></a-gui-icon-button>
+            <a-animation attribute="scale" id="dropvalani" begin="opendropdown"
+                         dur="1000" fill="forwards" to="1 1 1"></a-animation>	
+            <a-animation attribute="position" id="dropvalani1" begin="opendropdown"
+                         dur="1000" fill="forwards" to="0 0.375 0.15"></a-animation>						
+            <a-animation attribute="visible" id="dropvalani2" begin="opendropdown"
+                         fill="forwards" dur="100" to="true"></a-animation>						
+            <a-animation attribute="scale" id="dropvalaniback" begin="closedropdown"
+                         dur="1000" fill="forwards" to="1 0.001 0.001"></a-animation>	
+            <a-animation attribute="position" id="dropvalani1back" begin="closedropdown"
+                         dur="1000" fill="forwards" to="0 0 -0.15"></a-animation>						
+            <a-animation attribute="visible" id="dropvalani2back" begin="closedropdown"
+                         fill="forwards" delay="500" dur="100" to="false"></a-animation>						
+          </a-gui-flex-container>
+        </a-entity>
+      </a-entity>
+    </a-scene>
+    <!-- link for mc-patch component 
+    <a id="downloadAnchorElem"></a>-->
+  </body>
+</html>
