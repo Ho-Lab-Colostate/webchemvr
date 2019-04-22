@@ -32,6 +32,18 @@ function parseRepAlg(raw, repDefault) {
   return parsed; 
 }
 
+function unparseRepAlg(a) {
+  /**
+   * For 2D array `a`, joins along the second
+   * dimension with ,
+   */
+  var r = [];
+  for (var i = 0; i < a.length; i++) {
+     r.push(a[i].join("="));
+  }
+  return r;
+}
+
 // ngl-mol helper function
 // Parses ngl-mol.data.mutation_algebra
 function parseMutAlg(raw) {
@@ -53,32 +65,29 @@ function queryNglMol(src) {
   }
 }
 
-/**
- * annotation
- */
 AFRAME.registerComponent('ngl-mol', {
   schema: {
 		src: {type: 'string', default: "rcsb://1crn"},
     interest: {type: 'string', default: ""},
-    wrapperOpacity: {type: 'float', default: 0.0},
+    showWrapper: {type: 'boolean', default: false},
+    devKeyBinds: {type: 'boolean', default: false},
     repAlgebra: {
       default: "all",
       parse: function (raw) {
         // The default value for each representation
-        var repDefault = ["all", "cartoon", "chainname"]
+        var repDefault = ["protein", "cartoon", "chainname"];
         return parseRepAlg(raw, repDefault);
       },
     },
     mutation_algebra: {
       default: "",
       parse: function (raw) {
-         return parseMutAlg(raw);
+         return raw;
       }
     },
 	},
 	  
-	init: function () {
-    //console.log('called ngl-mol init');
+	init: function () {    
     // Ensures that only one viewport is created
     // Necessary for ngl-dev.js compatibility
     if (!document.getElementById("viewport")) {
@@ -87,6 +96,12 @@ AFRAME.registerComponent('ngl-mol', {
       div.style.width = "0px";
       div.style.height = "0px";
       document.body.appendChild(div);
+    }
+    
+    // Development <shift> + {number} keybinds
+    // for a number of setAttribute updates
+    if (this.data.devKeyBinds) {
+      this.addDevKeyBinds(); 
     }
 	},
 
@@ -98,29 +113,52 @@ AFRAME.registerComponent('ngl-mol', {
     // Need to make sure <a-scene>, specifically <a-camera>,
     // has finished loading before staging NGL scene
     if (sceneEl.hasLoaded) {
-      //console.log('scene is already loaded');
       renderNglScene();
     } else {
-      //console.log('scene has not finished loading yet');
       sceneEl.addEventListener('loaded', renderNglScene);
     }
         
-    function renderNglScene() {
-      //console.log('called ngl-mol renderNglScene');
-      //console.log(sceneEl.hasLoaded);
-      
+    function renderNglScene() { 
       if (!self.NGLstage) {
         // Instantiate an NGL stage if it doesn't exist
-        var stageObj3D = new THREE.Object3D()
-        self.NGLstage = new NGL.Stage("viewport", stageObj3D);//self.el.object3D);
-        self.el.setObject3D('mesh', stageObj3D);
-      } else if (oldData.src != self.data.src || 
-                 oldData.repAlgebra != self.data.repAlgebra) {
-        // NGL stage exists, but the PDB code or representations changed
-        // Clear the stage
-        console.log("Hello, new molecule " + self.data.src + 
-                   " with representation " + self.data.repAlgebra);
+        var stageObj3D = self.el.object3D; //new THREE.Object3D();
+        self.NGLstage = new NGL.Stage("viewport", stageObj3D);
+        //self.el.setObject3D('mesh', stageObj3D);
+      } else if (oldData.src != self.data.src) {
+        // NGL stage exists, but the PDB code changed
+        // clobber the stage
         self.NGLstage.removeAllComponents();
+      } else if (oldData.repAlgebra != self.data.repAlgebra) {
+        // NGL stage exists and PDB code is same,
+        // but the representations changed
+        var addReps = unparseRepAlg(self.data.repAlgebra);
+        // Iterate over all current reps
+        // and remove any that are no longer in current repAlgebra
+        self.NGLstage.eachRepresentation(r => {
+          var rawRep = r.repAlg.join("=");
+          if (addReps.indexOf(rawRep) == -1) {
+            // this representation was removed
+            //console.log('remove rep');
+            self.structComp.removeRepresentation(r);
+          } else {
+            // this representation is already loaded in the stage
+            //console.log('keep in stage');
+            // remove from the addReps so that we know which
+            // representations to add
+            addReps.splice(addReps.indexOf(rawRep), 1);
+          }
+          //console.log(rawRep);
+        });
+        
+        // error handling
+        if (!self.structComp) { console.error("this.structComp is undefined"); }
+        // re-parse addReps to resemble this.data.repAlgebra
+        var parsedAddReps = parseRepAlg(addReps.join("++"), ["protein", "cartoon", "chainname"]);
+        // add all the remaining representations
+        //console.log("add reps");
+        //console.log(parsedAddReps);
+        self.addRepsFromRepAlg(self.structComp, parsedAddReps);
+        return;
       } else {
         // Nothing important changed.
         return;
@@ -130,49 +168,66 @@ AFRAME.registerComponent('ngl-mol', {
       if (self.data.src == "sphere_test") {
         var shape = new NGL.Shape( "shape" );
         shape.addSphere( [ 0, 0, 0 ], [ 0, 0, 0 ], 5 );
-        /*
-        shape.addMesh(
-            [ 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 1 ],
-            [ 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0 ],
-            undefined, undefined, "My mesh"
-        );
-        shape.addSphere( [ 12, 5, 15 ], [ 1, 0.5, 0 ], 1 );
-        shape.addEllipsoid( [ 6, 0, 0 ], [ 1, 0, 0 ], 1.5, [ 3, 0, 0 ], [ 0, 2, 0 ] );
-        shape.addCylinder( [ 0, 2, 7 ], [ 0, 0, 9 ], [ 1, 1, 0 ], 0.5 );
-        shape.addCone( [ 0, 2, 7 ], [ 0, 3, 3 ], [ 1, 1, 0 ], 1.5 );
-        shape.addArrow( [ 1, 2, 7 ], [ 30, 3, 3 ], [ 1, 0, 1 ], 1.0 );
-        shape.addArrow( [ 2, 2, 7 ], [ 30, -3, -3 ], [ 1, 0.5, 1 ], 1.0 );
-        shape.addLabel( [ 15, -4, 4 ], [ 0.2, 0.5, 0.8 ], 2.5, "Hello" );*/
+        var shapeComp = self.NGLstage.addComponentFromObject( shape );
+        shapeComp.addRepresentation( "buffer" );
+        return;
+      } else if (self.data.src == "surfacebuffer_test") {
+        var shape = new NGL.Shape( "shape" );
+        //shape.addSphere( [ 0, 0, 0 ], [ 0, 0, 0 ], 5 );
+        var sphereBuffer = new NGL.SphereBuffer( {
+            position: new Float32Array( [ 0, 0, 0, 4, 0, 0 ] ),
+            color: new Float32Array( [ 1, 0, 0, 1, 1, 0 ] ),
+            radius: new Float32Array( [ 1, 1.2 ] )
+        });
+        shape.addBuffer( sphereBuffer );
         var shapeComp = self.NGLstage.addComponentFromObject( shape );
         shapeComp.addRepresentation( "buffer" );
         return;
       }
       
       // load src into stage, add all necessary representations, etc.
-      self.NGLstage.loadFile(self.data.src).then(function(sc) {
+      self.NGLstage.loadFile(self.data.src).then(sc => {
         self.structComp = sc;
-        self.addRepsFromRepAlg(sc);
+        self.addRepsFromRepAlg(sc, self.data.repAlgebra);
         self.centerNglInWrapper(sc);
       });
     }
-    
 	},
   
   /**
-   * Adds reprentation components to structure component sc
-   * based on parsed this.data.repAlgebra.
+   * Adds reprentation components to structure component `sc`
+   * based on parsed representation algebra `ra`.
    */
-  addRepsFromRepAlg: function (sc) {
-    var ra = this.data.repAlgebra;
+  addRepsFromRepAlg: function (sc, ra) {
+    //var ra = this.data.repAlgebra;
+    console.log("Hello, molecule " + this.data.src + 
+                " with representation " + ra.join("; "));
     // Add one RepresentationComponent to structureComponent
     // for each entry in this.data.repAlgebra
     for (var i = 0; i < ra.length; i++) {
-      //console.log(ra[i][0]);
-      sc.addRepresentation(ra[i][1], {
-        sele: ra[i][0],
-        color: ra[i][2]
-      })
+      // Parse each representation into selection,
+      // rep type, color split by =
+      if (ra[i][1] == "surface") {
+        var r = sc.addRepresentation("surface", {
+          sele: ra[i][0],
+          //color: ra[i][2],
+          surfaceType: "sas",
+          smooth: false,
+          //probeRadius: 1,
+        });
+        console.log(r.repr.getSurfaceParams());
+        
+      } else if (ra[i][1] == "distance") {
+        console.error("Distance rep not supported yet");
+      } else {
+        var r = sc.addRepresentation(ra[i][1], {
+          sele: ra[i][0],
+          color: ra[i][2]
+        });
+      }
+      r.repAlg = ra[i]
     }
+    //sc.rebuildRepresentations();
   },
   
   /**
@@ -218,9 +273,9 @@ AFRAME.registerComponent('ngl-mol', {
     // Generate wrapper box's mesh and set on its object3D
     boxEl.geometry = new THREE.BoxBufferGeometry(bbdims.x, bbdims.y, bbdims.z);
     boxEl.material = new THREE.MeshStandardMaterial({
-      color: boxEl.getAttribute('color'),
-      transparent: true,
-      opacity: this.data.wrapperOpacity
+      color: 'blue',//boxEl.getAttribute('color'),
+      wireframe: true,
+      visible: this.data.showWrapper,
     });
     boxEl.mesh = new THREE.Mesh(boxEl.geometry, boxEl.material);
     boxEl.setObject3D('mesh', boxEl.mesh);
@@ -257,47 +312,18 @@ AFRAME.registerComponent('ngl-mol', {
 
   },
   
-});
-
-/**
- * Scene level handler
- */
-AFRAME.registerComponent('ngl-handler', {
-	schema: {},
-  
-  init: function () {
+  /**
+   * Develoment keybinds <shift> + {number} for a series
+   * of different attribute chnages
+   */
+  addDevKeyBinds: function() {
     var self = this;
-    var sceneEl = this.el;
-    
-    // add event listeners for 
-    // add molecule
-    // delete molecule
-    // change representations
-    // arrange molecules in a logical layout
-    
-    // Add keybind listeners for dev
-    this.addDevListener();
-    
-    // Change representation listener
-    //this.el.addEventListener('changerep', evt => this.emitChangeRep(evt, self));
-    //console.log(document.querySelector('a-camera').hasLoaded);
-  },
-  
-  /*
-  emitChangeRep: function(evt, self) {
-    var d = evt.detail;
-    var tarEl = self.queryNglMol(d.src);
-    tarEl.setAttribute('ngl-mol', {repAlgebra: "repAlgebra: protein=backbone++dna=backbone=atomindex++dna=base"});
-  },
-  */
-  
-  addDevListener: function() {
-    var self = this;
-    var tarEl = queryNglMol("rcsb://1crn");
+    //var tarEl = this.el;
+    var tarEl = document.querySelector("#mol1");
     document.addEventListener('keydown', function (evt) {
       // <shift> + * for everything.
       if (!evt.shiftKey) { return; }
-      console.log(evt.keyCode);
+      //console.log(evt.keyCode);
       switch(evt.keyCode) {
         case 48: // 0
           break;
@@ -325,18 +351,13 @@ AFRAME.registerComponent('ngl-handler', {
         case 56: // 8
           break;
         case 57: // 9
+          tarEl.setAttribute('ngl-mol',{repAlgebra: "protein=cartoon=chainname"});
           break;
         case 189: // -
-          tarEl.setAttribute(
-            'ngl-mol',{
-              repAlgebra: "protein=backbone++dna=backbone=atomindex++dna=base"
-          });
+          tarEl.setAttribute('ngl-mol',{repAlgebra: "protein=backbone++dna=backbone=atomindex++dna=base"});
           break;
         case 187: // =
-          tarEl.setAttribute(
-            'ngl-mol',{
-              repAlgebra: "protein=cartoon=bfactor++ARG=licorice=element++dna=licorice=element"
-          });
+          tarEl.setAttribute('ngl-mol',{repAlgebra: "all=cartoon=chainname++ARG=licorice=element++dna=licorice=element"});
           break;
       }
     });
