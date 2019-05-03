@@ -99,16 +99,26 @@
       <a-box static-body width="1" height="1" depth="1" color="red" position="0 0 -1"></a-box>-->
       
       <!-- Molecules -->
-      <a-box dynamic-body mixin="molwrapper" color="blue" wireframe="true"
-             rotation="0 0 0" position="0 .1 -.9" depth="0.2" width="0.2" height="0.2">
+      <a-sphere dynamic-body mixin="molwrapper" color="blue" wireframe="true"
+             rotation="0 0 0" position="0 .1 -.9" radius="0.2">
           <!-- -->
           <a-entity scale="0.02 0.02 0.02"
                     id="mol1"
                     ngl-mol="src: rcsb://3cro;
-                             repAlgebra: protein=cartoon=element++ARG=ball+stick=element++dna=cartoon=residue; 
+                             repAlgebra: protein=cartoon=element++ARG=ball+stick=element; 
                              showWrapper: false;
                              devKeyBinds: true"></a-entity>
-      </a-box>
+      </a-sphere>
+      <a-sphere dynamic-body mixin="molwrapper" color="blue" wireframe="true" 
+             rotation="0 0 0" position=".2 2 -.9" radius="0.2">
+          <!-- -->
+          <a-entity scale="0.02 0.02 0.02"
+                    id="mol2"
+                    ngl-mol="src: rcsb://1crn;
+                             repAlgebra: protein=cartoon=element; 
+                             showWrapper: false;
+                             devKeyBinds: true"></a-entity>
+      </a-sphere>
       
     </a-scene>
     <!-- Link for avatar-downloader component--> 
