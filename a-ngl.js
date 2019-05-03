@@ -164,7 +164,7 @@ AFRAME.registerComponent('ngl-mol', {
         return;
       }
       
-      // sphere buffer instead of molecule if src is correct
+      // some debugging options
       if (self.data.src == "sphere_test") {
         var shape = new NGL.Shape( "shape" );
         shape.addSphere( [ 0, 0, 0 ], [ 0, 0, 0 ], 5 );
@@ -262,14 +262,33 @@ AFRAME.registerComponent('ngl-mol', {
     // Translate entire molecule to center of a-box wrapper
     sc.setPosition(centInv.toArray());
     
-    // ********* shrink box wrapper ************
-
+    // ********* shrink wrapper ************
+    
+    var rad = (Math.min(bbdims.x, bbdims.y, bbdims.z))/2;
+    console.log(rad);
+    var wrapEl = this.el.parentEl;
+    wrapEl.setAttribute('radius', rad);
+    
+    // Generate new mesh and set on wrapper el
+    wrapEl.geometry = new THREE.SphereBufferGeometry(rad);
+    wrapEl.material = new THREE.MeshStandardMaterial({
+      color: 'blue',
+      wireframe: true,
+      visible: this.data.showWrapper,
+    });
+    wrapEl.mesh = new THREE.Mesh(wrapEl.geometry, wrapEl.material);
+    wrapEl.setObject3D('mesh', wrapEl.mesh);
+    
+    /*
+    
+    OLD WAY WITH BOX WRAPPER
+    
     // Shrink parent box wrapper to dims of bounding box
     var boxEl = this.el.parentEl;
     boxEl.setAttribute('width', bbdims.x);
     boxEl.setAttribute('height', bbdims.y);
     boxEl.setAttribute('depth', bbdims.z);
-
+    
     // Generate wrapper box's mesh and set on its object3D
     boxEl.geometry = new THREE.BoxBufferGeometry(bbdims.x, bbdims.y, bbdims.z);
     boxEl.material = new THREE.MeshStandardMaterial({
@@ -279,6 +298,8 @@ AFRAME.registerComponent('ngl-mol', {
     });
     boxEl.mesh = new THREE.Mesh(boxEl.geometry, boxEl.material);
     boxEl.setObject3D('mesh', boxEl.mesh);
+    
+    */
   },
   
   /**
