@@ -1,3 +1,16 @@
+/**
+ * Returns 1D array of a column (index `col`)
+ * from `matrix`. Adapted from StackOverflow post
+ * https://stackoverflow.com/questions/7848004/get-column-from-a-two-dimensional-array
+ */
+function getCol(matrix, col) {
+   var column = [];
+   for(var i=0; i<matrix.length; i++){
+      column.push(matrix[i][col]);
+   }
+   return column;
+}
+
 Array.prototype.diff = function(a) {
     return this.filter(function(i) {return a.indexOf(i) < 0;});
 };

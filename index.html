@@ -32,9 +32,9 @@
   </head>	
   <body>
     <!-- scene must have light="defaultLightsEnabled: true" to render correctly on Safari mobile VR mode -->
-	  <a-scene physics light="defaultLightsEnabled: true" background="color: #d8ecf9" avatar-downloader
+	  <a-scene physics="debug: true" light="defaultLightsEnabled: true" background="color: #d8ecf9" avatar-downloader
              ><!--
-             avatar-replayer="src: https://cdn.glitch.com/63c3d0a9-aa0b-44cc-99ea-52a914562c8c%2F9.json?1553905149377">-->
+             avatar-replayer="src: ">-->
       <a-assets>
         <img id="grid" src="https://img.gs/bbdkhfbzkk/stretch/https://i.imgur.com/25P1geh.png" crossorigin="anonymous">
         <!-- Super Hands raycaster controller -->
@@ -67,14 +67,10 @@
                  super-hands hand-controls="left"></a-mixin>
         <a-mixin id="controller-right-basic" sphere-collider="objects: .molwrapper"
                  super-hands hand-controls="right"></a-mixin>
-        
-        <!-- molwrapper box -->
-        <a-mixin id="molwrapper" hoverable grabbable stretchable
-                 draggable droppable clickable></a-mixin>
       </a-assets>
 
       <!-- PLAYER -->
-      <a-entity id="cameraRig" position="0 0 0">
+      <a-entity id="cameraRig" position="0 -1.5 0">
         <!-- camera -->
         <a-camera id="head" position="0 0 0">
           <!--<a-cursor></a-cursor>-->
@@ -92,38 +88,76 @@
       </a-entity>
       
       <!-- Ground static body -->
-      <a-box static-body width="100" height="1" depth="100" visible="true" color="grey" position="0 -1 0"
+      <a-box static-body width="100" height="1" depth="100" visible="true" color="grey" position="0 -.5 0"
              material="src: #grid; repeat: 100 100; transparent: true; metalness:0.6; roughness: 0.4;"></a-box>
       
       <!-- "Table" for molecule to sit on 
       <a-box static-body width="1" height="1" depth="1" color="red" position="0 0 -1"></a-box>-->
       
+      <!-- "Cage" to keep molecules from rolling everywhere -->
+      <a-entity>
+        <a-box color="grey" position="-1 .2 0" static-body opacity="0.5"
+               depth="2" width=".1" height=".4"></a-box>
+        <a-box color="grey" position="0 .2 1" static-body opacity="0.5"
+               depth=".1" width="2" height=".4"></a-box>
+        <a-box color="grey" position="1 .2 0" static-body opacity="0.5"
+               depth="2" width=".1" height=".4"></a-box>
+        <a-box color="grey" position="0 .2 -1" static-body opacity="0.5"
+               depth=".1" width="2" height=".4"></a-box>
+      </a-entity>
+      
       <!-- Molecules -->
-      <a-sphere dynamic-body mixin="molwrapper" color="blue" wireframe="true"
-             rotation="0 0 0" position="0 .1 -.9" radius="0.2">
-          <!-- -->
-          <a-entity scale="0.02 0.02 0.02"
-                    id="mol1"
-                    ngl-mol="src: rcsb://3cro;
-                             repAlgebra: protein=cartoon=element++ARG=ball+stick=element; 
-                             showWrapper: false;
-                             devKeyBinds: true"></a-entity>
-      </a-sphere>
-      <a-sphere dynamic-body mixin="molwrapper" color="blue" wireframe="true" 
-             rotation="0 0 0" position=".2 2 -.9" radius="0.2">
-          <!-- -->
+        <a-entity scale="0.02 0.02 0.02"
+                  id="mol1"
+                  ngl-mol="src: rcsb://1crn;
+                           repAlgebra: protein=cartoon=bfactor++ARG=ball+stick=element;
+                           interfaceAlgebra: *;
+                           showWrapper: true;
+                           devKeyBinds: true"
+                  hoverable grabbable stretchable draggable droppable
+             position=".2 3 -.2"
+             body="type: dynamic; mass: 5; shape: none;"
+             shape__sphere="shape: sphere;
+                            radius: 1"
+             ></a-entity>
+      <a-entity scale="0.02 0.02 0.02"
+                  id="mol1"
+                  ngl-mol="src: rcsb://1crn;
+                           repAlgebra: protein=cartoon=element;
+                           interfaceAlgebra: *;
+                           showWrapper: true;
+                           devKeyBinds: true"
+                  hoverable grabbable stretchable draggable droppable
+             position=".2 1 -.2"
+             body="type: dynamic; mass: 5; shape: none;"
+             shape__sphere="shape: sphere;
+                            radius: 1"
+             ></a-entity>
+      <!--
+      <a-entity color="blue" position=".2 3 -.5"
+          body="type: dynamic; mass: 5; shape: none;"
+          shape__sphere="shape: sphere;
+                       radius: .1"
+          shape__box="shape: box;
+                      halfExtents: 0.15 0.18 0.04;
+                      offset: 0.4 0 0;">
+</a-entity>-->
+      <!--<a-sphere dynamic-body color="blue" wireframe="true"
+                hoverable grabbable stretchable draggable droppable
+                rotation="0 0 0" position=".2 2 -.3" radius="0">
           <a-entity scale="0.02 0.02 0.02"
                     id="mol2"
                     ngl-mol="src: rcsb://1crn;
                              repAlgebra: protein=cartoon=element; 
-                             showWrapper: false;
+                             showWrapper: true;
                              devKeyBinds: true"></a-entity>
-      </a-sphere>
+      </a-sphere>-->
       
     </a-scene>
     <!-- Link for avatar-downloader component--> 
     <a href="http://www.google.com" id="dlJSON"
        style="visibility: hidden; fill:#222; color:#fff; position: absolute; top: 0; border: 0; right: 0;">Download JSON</a>
-  </body>
   <div id="viewport" width="0px" height="0px"></div>
+  </body>
+  
 </html>
