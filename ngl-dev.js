@@ -14863,7 +14863,7 @@ Object.assign( BufferGeometry.prototype, EventDispatcher.prototype, {
 
 	computeBoundingSphere: function () {
 
-		var box = new Box3();
+    var box = new Box3();
 		var vector = new Vector3();
 
 		return function computeBoundingSphere() {
@@ -14875,7 +14875,7 @@ Object.assign( BufferGeometry.prototype, EventDispatcher.prototype, {
 			}
 
 			var position = this.attributes.position;
-
+			
 			if ( position ) {
 
 				var center = this.boundingSphere.center;
@@ -99902,6 +99902,9 @@ exports.Quaternion = Quaternion;
 exports.Euler = Euler;
 exports.Plane = Plane;
 exports.Color = Color;
+                            
+exports.MeshBuffer = MeshBuffer;
+exports.SurfaceBuffer = SurfaceBuffer;
 
 Object.defineProperty(exports, '__esModule', { value: true });
 
