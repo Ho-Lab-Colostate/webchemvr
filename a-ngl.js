@@ -10,15 +10,11 @@ AFRAME.registerComponent('ngl-mol', {
   schema: {
 		src: {type: 'string', default: "rcsb://1crn"},
     interest: {type: 'string', default: ""},
-    showWrapper: {type: 'boolean', default: false},
     devKeyBinds: {type: 'boolean', default: false},
     interfaceAlgebra: {type: 'string', default: "none"},
     repAlgebra: {
-      default: "all",
       parse: function (raw) {
-        // The default value for each representation
-        var repDefault = ["protein", "cartoon", "chainname"];
-        return parseRepAlg(raw, repDefault);
+        return parseRepAlg(raw, ["protein", "cartoon", "chainname", 1]);
       },
     },
     mutationAlgebra: {
@@ -30,10 +26,8 @@ AFRAME.registerComponent('ngl-mol', {
     debug: {type: 'boolean', default: false},
 	},
 	  
-	init: function () {   
-    // repArr
-    this.repArr = [];
-    
+	init: function () {
+    console.log(this.data.repAlgebra);
     // Ensures that only one viewport is created
     // Necessary for ngl-dev.js compatibility
     if (!document.getElementById("viewport")) {
@@ -83,8 +77,8 @@ AFRAME.registerComponent('ngl-mol', {
       } else if (oldData.repAlgebra != self.data.repAlgebra) {
         // NGL stage exists and PDB code is same, but the representations changed
         var addReps = unparseRepAlg(self.data.repAlgebra);
-        // Iterate over all current reps
-        // and remove any that are no longer in current repAlgebra
+        // Iterate over all current reps and remove 
+        // any that are no longer in current repAlgebra
         self.NGLstage.eachRepresentation(r => {
           var rawRep = r.repAlg.join("=");
           if (addReps.indexOf(rawRep) == -1) {
@@ -169,11 +163,11 @@ AFRAME.registerComponent('ngl-mol', {
       }
       
       // load src into stage, add all necessary representations, etc.
-      self.NGLstage.loadFile(self.data.src).then(sc => {
-        self.structComp = sc;
-        self.addRepsFromRepAlg(sc, self.data.repAlgebra);
+      self.NGLstage.loadFile(self.data.src).then(function (sc) {
+        self.structComp = sc; 
         // store translation vector as attribute
         self.centerTransform = self.centerNglInWrapper(sc);
+        self.addRepsFromRepAlg(sc, self.data.repAlgebra);
         self.addVoxelCollidersByRes(sc, self);
         //self.removeVoxelColliders(self);
         //self.addInterface(sc, self);
@@ -194,35 +188,35 @@ AFRAME.registerComponent('ngl-mol', {
       // Parse each representation into selection,
       // rep type, color split by =
       if (ra[i][1] == "surface") {
-        this.surface = sc.addRepresentation("surface");
-        console.log(this.surface.repr.bufferList);
-        console.log(poo);//r.repr.getSurfaceParams());
+        var r = sc.addRepresentation("surface", {
+          sele: ra[i][0],
+          color: ra[i][2],
+          opacity: ra[i][3],
+          surfaceType: "sas",//ra[i][4],
+          probeRadius: ra[i][5]
+        });
+        console.log(r.repr.getColorParams());
       } else if (ra[i][1] == "distance") {
         console.error("Distance rep not supported yet");
       } else {
         var r = sc.addRepresentation(ra[i][1], {
           sele: ra[i][0],
           color: ra[i][2],
+          opacity: ra[i][3],
         });
         console.log(r);
       }
-      //r.repAlg = ra[i]
+      r.repAlg = ra[i]
     }
-    sc.rebuildRepresentations();
-  },
-  
-  getRepByUUID: function() {
-    
+    //sc.rebuildRepresentations();
   },
   
   /**
    * Centers structure component `sc` at origin of wrapper entity
    */
   centerNglInWrapper: function(sc) {    
-    // Get wrapped structure instance
-    var struct = sc.structure;
     // Get bounding box as Box3
-    var boundingBox = struct.getBoundingBox();
+    var boundingBox = sc.structure.getBoundingBox();
     // Find center of box as Vector3. Same as struct.atomCenter()
     var center = boundingBox.getCenter();
     // Get inverse Vector3 for molecule translation
@@ -422,23 +416,22 @@ AFRAME.registerComponent('ngl-mol', {
   },
 });
 
-// ngl-mol helper function
-// Parses ngl-mol.data.repAlgebra
+/**
+ * Parses str `raw` and returns as 2D array
+ * First split by '++', second by '='
+ * e.g. "protein=cartoon=bfactor++dna=ball+stick=atomindex"
+ * becomes [["protein", "cartoon", "bfactor"],
+ *          ["dna", "ball+stick", "atomindex"]]
+ * Any representation entry with < 3 values is filled
+ * by array `repDefault` elements
+ */
 function parseRepAlg(raw, repDefault) {
-  /* Parses str `raw` and returns as 2D array
-   * First split by '++', second by '='
-   * e.g. "protein=cartoon=bfactor++dna=ball+stick=atomindex"
-   * becomes [["protein", "cartoon", "bfactor"],
-   *          ["dna", "ball+stick", "atomindex"]]
-   * Any representation entry with < 3 values is filled
-   * by array `repDefault` elements
-   */
-  
   var parsed = [];
   var eachRep = raw.split('++');
   for (var i = 0; i < eachRep.length; i++) {
     var eachWord = eachRep[i].split('=');
-    for (var j = 0; j < repDefault.length; j++) {
+    var repLen = Math.max(repDefault.length, eachWord.length);
+    for (var j = 0; j < repLen; j++) {
       if (!eachWord[j]) {
         eachWord[j] = repDefault[j];
       }
@@ -465,18 +458,4 @@ function unparseRepAlg(a) {
 function parseMutAlg(raw) {
   if (raw == "") { return raw; }
   //
-}
-
-/**
- * Returns A-frame element that satisfies [ngl-mol]
- * where ngl-mol.data.src = `src'
- */
-function queryNglMol(src) {
-  var sceneEl = document.querySelector("a-scene");
-  var els = sceneEl.querySelectorAll("[ngl-mol]");
-  for (var i = 0; i < els.length; i++) {
-    if (els[i].getAttribute('ngl-mol').src == src) {
-      return els[i];
-    }
-  }
 }

@@ -5,8 +5,7 @@ Prototype: WebVR implementation of molecular structure viewer NGL. Ethan's READM
 
 To do (remote dev):
 -----------------
-- Get surface representation working
-  - For some reason, throwing an error in the async gets surfaces to work, but removing errors causes surface not to render
+- Object/dictionary based repAlgebra instead of 2D array
 - Check if another component on molecule entity (new mol-physics component) can access shape_* component coordinates and radius
 - intermol A-frame component
   - Electrostatic/hydrophobic in schema
