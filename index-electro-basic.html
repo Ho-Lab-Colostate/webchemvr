@@ -5,7 +5,7 @@
     
     <script src="https://aframe.io/releases/0.8.2/aframe.min.js"></script>
     <script src="https://unpkg.com/super-hands/dist/super-hands.min.js"></script>
-    <script src="//cdn.rawgit.com/donmccurdy/aframe-physics-system/v3.1.2/dist/aframe-physics-system.min.js"></script>
+    <script src="https://cdn.rawgit.com/donmccurdy/aframe-physics-system/v3.1.2/dist/aframe-physics-system.min.js"></script>
     <script src="https://unpkg.com/aframe-event-set-component@^4.1.1/dist/aframe-event-set-component.min.js"></script>
     <script src="https://unpkg.com/aframe-physics-extras/dist/aframe-physics-extras.min.js"></script>
     <script src="https://rawgit.com/feiss/aframe-environment-component/master/dist/aframe-environment-component.min.js"></script>
@@ -16,6 +16,12 @@
     
     <!-- extras -->
     <script src="./ethans.js"></script>
+    
+    <!-- fork of A-frame physics spring component -->
+    <script src="./intermol.js"></script>
+    
+    <!-- vis.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"></script>
     
     <!-- Sharedspace 
     <script src="https://unpkg.com/aframe-sharedspace-component@1.0.1/dist/aframe-sharedspace-component.min.js"></script>-->
@@ -70,7 +76,7 @@
       </a-assets>
 
       <!-- PLAYER -->
-      <a-entity id="cameraRig" position="0 .5 .8">
+      <a-entity id="cameraRig" position="0 .5 .3">
         <!-- camera -->
         <a-camera id="head" position="0 0 0">
           <!--<a-cursor></a-cursor>-->
@@ -87,14 +93,14 @@
                                      startEvents: teleportstart; endEvents: teleportend; type: line">--></a-entity>
       </a-entity>
       
-      <!-- Ground static body 
+      <!-- Ground static body -->
       <a-box static-body width="100" height="1" depth="100" visible="true" color="grey" position="0 -.5 0"
-             material="src: #grid; repeat: 100 100; transparent: true; metalness:0.6; roughness: 0.4;"></a-box>-->
+             material="src: #grid; repeat: 100 100; transparent: true; metalness:0.6; roughness: 0.4;"></a-box>
       
       <!-- "Table" for molecule to sit on 
       <a-box static-body width="1" height="1" depth="1" color="red" position="0 0 -1"></a-box>-->
       
-      <!-- "Cage" to keep molecules from rolling everywhere 
+      <!-- "Cage" to keep molecules from rolling everywhere
       <a-entity>
         <a-box color="grey" position="-1 .2 0" static-body opacity="0.5"
                depth="2" width=".1" height=".4"></a-box>
@@ -106,50 +112,35 @@
                depth=".1" width="2" height=".4"></a-box>
       </a-entity>-->
       
-      <!-- Molecules -->
-      <a-entity scale=".02 .02 .02"
-                position="-.1 .5 0"
-                ngl-mol="src: rcsb://1crn;
-                         repAlgebra: protein=surface=electrostatic;
-                         devKeyBinds: true;
-                         debug: false"
-                hoverable grabbable stretchable draggable droppable
-                body="type: static; mass: 5; shape: none;"
-      ></a-entity>
-      <!--<a-entity scale="0.02 0.02 0.02"
-                ngl-mol="src: rcsb://1crn;
-                           repAlgebra: protein=cartoon=element;
+      <!-- Molecules 
+        <a-entity scale="0.02 0.02 0.02"
+                  id="mol1"
+                  ngl-mol="src: rcsb://1crn;
+                           repAlgebra: protein=cartoon=bfactor++ARG=ball+stick=element;
                            interfaceAlgebra: *;
                            showWrapper: true;
                            devKeyBinds: true"
                   hoverable grabbable stretchable draggable droppable
-             position=".2 1 -.1"
+             position="0 .5 -.8"
              body="type: dynamic; mass: 5; shape: none;"
+             shape__sphere="shape: sphere;
+                            radius: 1"
              ></a-entity>-->
-      <!--
-      <a-entity color="blue" position=".2 3 -.5"
-          body="type: dynamic; mass: 5; shape: none;"
-          shape__sphere="shape: sphere;
-                       radius: .1"
-          shape__box="shape: box;
-                      halfExtents: 0.15 0.18 0.04;
-                      offset: 0.4 0 0;">
-</a-entity>-->
-      <!--<a-sphere dynamic-body color="blue" wireframe="true"
-                hoverable grabbable stretchable draggable droppable
-                rotation="0 0 0" position=".2 2 -.3" radius="0">
-          <a-entity scale="0.02 0.02 0.02"
-                    id="mol2"
-                    ngl-mol="src: rcsb://1crn;
-                             repAlgebra: protein=cartoon=element; 
-                             showWrapper: true;
-                             devKeyBinds: true"></a-entity>
-      </a-sphere>-->
-      
+      <a-sphere id="anchor" position="-1 2.5 -.2" radius="0.1"
+                dynamic-body color="red" charge="1"
+                hoverable grabbable stretchable draggable droppable></a-sphere>
+      <a-sphere position="1 1.5 -.2" radius=".2" color="purple"
+                dynamic-body="mass: 1"
+                charge="1"
+                intermol="target: #anchor;
+                          stiffness: .5;
+                          damping: 100;
+                          restLength: .3"
+                hoverable grabbable stretchable draggable droppable></a-sphere>
     </a-scene>
     <!-- Link for avatar-downloader component--> 
     <a href="http://www.google.com" id="dlJSON"
-       style="visibility: hidden; fill:#222; color:#fff; position: absolute; top: 0; border: 0; right: 0;">Download JSON</a>
+       style="visibility: hidden; fill:#222; color:#fff; position: absolute; top: 0; border: 0; right: 0; z-index: 1000">Download JSON</a>
   <div id="viewport" width="0px" height="0px"></div>
   </body>
   
