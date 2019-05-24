@@ -5,7 +5,6 @@ Prototype: WebVR implementation of molecular structure viewer NGL. Ethan's READM
 
 To do (remote dev):
 -----------------
-- Object/dictionary based repAlgebra instead of 2D array
 - Check if another component on molecule entity (new mol-physics component) can access shape_* component coordinates and radius
 - intermol A-frame component
   - Electrostatic/hydrophobic in schema
@@ -79,32 +78,45 @@ ngl-mol. Still debating whether I should do this or keep it in the ngl-mol compo
 ENH 5/16/2019
 - Got surface representations working. Need to set the representation component as an attribute of component instead of temp variable "r"
 
+ENH 5/23/2019
+- Did a lot of work on the core ngl-mol component:
+- this.repAlgebra is now a dictionary/Object, not a 2D array. Much easier to manage.
+  - repAlgebra as defined in inline HTML will now convert to an instance of NGL-type RepresentationParameters
+  - For instance, representation specific options such as useWorker can now be defined in HTML inline
+- Squashed some of the bugs associated with surface representations. Sometimes, surface will not appear on initialization
+(see known issue entry from 5/22), but should show up properly with dynamic repAlgebra changes via setAttribute, so this is probably
+not a big deal.
+- Added the addRebuildListener() method that listens for rebuildNglRepsEvt events and responds by calling structComp.rebuildRepresentations()  
+
+ENH 5/24/2019
+- Added support for distance representations. In repAlgebra, simply define selection algebra for atom1 and atom2 (same syntax as sele parameter)
+to draw distance between exactly 2 atoms. As always, user has full access to all options in DistanceRepresentationParameter from HTML inline 
+(e.g. labelUnit, labelColor, labelFont, etc.)
+
 Known Issues
 -----------------
 
 ENH 5/3/2019
 - When page loads, white cube appears and portions of the protein do not render correctly. When using dev keybinds, proteins usually load correctly, but sometimes these weird white
-cubes appear and often protein does not appear
-  - Likely crosstalk between NGL and A-frame is occurring before the other is ready
-  - Is scene loaded yet? What about the NGL stage?
+cubes appear.
+  - More graphically intense representations tend to trigger this more frequently
+  - Calling structComp.rebuildRepresentations() after page load fixes this most of the time, but will still trigger occasionally
 - Also, shrinkWrapper does not seem to set Object3D correctly on first load
-  - Specifically an issue with making a new THREE.SphereBufferGeometry with Microsoft Edge only, not Chrome
-  - As of 5/6, wrapper does render properly on Chrome
+  - No longer a method. Resolved
 
 ENH 5/6/2019
 - The wrapper entity physics body is defined by the HTML inline geometry, not by the wrapper geometry defined in ngl-mol component
+  - Wrapper entity is deprecated. Resolved.
 
 ENH 5/8/2019
-
 - Physics components do not have update methods (or at least ones that work correctly). el.setAttribute cannot alter, but will correctly add, physics components.
 In other words, do not define physics components in HTML inline, but rather through the ngl-mol component. Alternatively, use el.removeAttribute to completely remove
 the component before re-adding it.
 
 ENH 5/9/2019
-
 - Physics shape components apparently cannot be removed currently (per console error from shape component). I'll have to find another way to
 update/remove shape components
 
-Meeting Notes:
------------------
-
+ENH 5/22/2019
+- Sometimes surface does not show up. If I call sc.addRepresentation later, this happens less often, making me think it needs to wait until
+the stage (or some other part of NGL) is done loading before rendering. I should note that NGL will usually not throw an error for this.

@@ -30,9 +30,9 @@
     <script src="https://rawgit.com/fernandojsg/aframe-teleport-controls/master/dist/aframe-teleport-controls.min.js"></script>-->
 
   </head>	
-  <body>
+  <body onclick="rebuildNglReps();">
     <!-- scene must have light="defaultLightsEnabled: true" to render correctly on Safari mobile VR mode -->
-	  <a-scene physics="debug: true" light="defaultLightsEnabled: true" background="color: #d8ecf9" avatar-downloader
+	  <a-scene physics="debug: false" light="defaultLightsEnabled: true" background="color: #d8ecf9" avatar-downloader
              ><!--
              avatar-replayer="src: ">-->
       <a-assets>
@@ -87,13 +87,10 @@
                                      startEvents: teleportstart; endEvents: teleportend; type: line">--></a-entity>
       </a-entity>
       
-      <!-- Ground static body 
+      <!-- Ground static body -->
       <a-box static-body width="100" height="1" depth="100" visible="true" color="grey" position="0 -.5 0"
-             material="src: #grid; repeat: 100 100; transparent: true; metalness:0.6; roughness: 0.4;"></a-box>-->
-      
-      <!-- "Table" for molecule to sit on 
-      <a-box static-body width="1" height="1" depth="1" color="red" position="0 0 -1"></a-box>-->
-      
+             material="src: #grid; repeat: 100 100; transparent: true; metalness:0.6; roughness: 0.4;"></a-box>
+    
       <!-- "Cage" to keep molecules from rolling everywhere 
       <a-entity>
         <a-box color="grey" position="-1 .2 0" static-body opacity="0.5"
@@ -109,10 +106,13 @@
       <!-- Molecules -->
       <a-entity scale=".02 .02 .02"
                 position="-.1 .5 0"
-                ngl-mol="src: rcsb://1crn;
-                         repAlgebra: protein=surface=electrostatic;
-                         devKeyBinds: true;
-                         debug: false"
+                rotation="90 0 0"
+                ngl-mol="repAlgebra:sele=7-17,rep=cartoon,color=chainname,opacity=.4++
+                         atom1=13.CA,atom2=10.CA,rep=distance,labelUnit=angstrom,labelColor=yellow,color=yellow++
+                         sele=13 or 10,rep=licorice,color=element++
+                         sele=7-17.CA,rep=label,labelType=residue no,color=purple++
+                         sele=7-17,rep=surface,surfaceType=vdw,color=electrostatic,opacity=.4;
+                         debug: true;"
                 hoverable grabbable stretchable draggable droppable
                 body="type: static; mass: 5; shape: none;"
       ></a-entity>
@@ -147,6 +147,12 @@
       </a-sphere>-->
       
     </a-scene>
+    <script>
+      function rebuildNglReps() {
+        var evt = new Event('rebuildNglRepsEvt');
+        document.dispatchEvent(evt);
+      }
+    </script>
     <!-- Link for avatar-downloader component--> 
     <a href="http://www.google.com" id="dlJSON"
        style="visibility: hidden; fill:#222; color:#fff; position: absolute; top: 0; border: 0; right: 0;">Download JSON</a>
