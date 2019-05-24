@@ -10,11 +10,15 @@ AFRAME.registerComponent('ngl-mol', {
   schema: {
 		src: {type: 'string', default: "rcsb://1crn"},
     interest: {type: 'string', default: ""},
-    devKeyBinds: {type: 'boolean', default: false},
     interfaceAlgebra: {type: 'string', default: "none"},
     repAlgebra: {
       parse: function (raw) {
-        return parseRepAlg(raw, ["protein", "cartoon", "chainname", 1]);
+        return parseRepAlg(raw, {
+          sele: "*",
+          rep: "cartoon",
+          color: "chainname",
+          opacity: "1"
+        });
       },
     },
     mutationAlgebra: {
@@ -24,10 +28,10 @@ AFRAME.registerComponent('ngl-mol', {
       }
     },
     debug: {type: 'boolean', default: false},
+    reloadOnClick: {type: 'boolean', default: false},
 	},
 	  
 	init: function () {
-    console.log(this.data.repAlgebra);
     // Ensures that only one viewport is created
     // Necessary for ngl-dev.js compatibility
     if (!document.getElementById("viewport")) {
@@ -40,22 +44,29 @@ AFRAME.registerComponent('ngl-mol', {
     
     // Development <shift> + {number} keybinds
     // for a number of setAttribute updates
-    if (this.data.devKeyBinds) {
-      this.addDevKeyBinds(this); 
+    if (this.data.debug) {
+      this.clog("Adding development keybinds (<shift> + <number>)");
+      this.addDevKeyBinds();
+    }
+    
+    // Clicking on screen reloads all current
+    // representations for mobile browsers
+    if (this.el.sceneEl.isMobile || this.data.reloadOnClick) {
+      this.clog("Representations will reload on click");
+      this.addRebuildListener();
     }
 	},
 
 	update: function (oldData) {
     const self = this;
-    var sceneEl = self.el.sceneEl;
     //console.log("called ngl-mol update");
     
     // Need to make sure <a-scene>, specifically <a-camera>,
     // has finished loading before staging NGL scene
-    if (sceneEl.hasLoaded) {
+    if (self.el.sceneEl.hasLoaded) {
       renderNglScene();
     } else {
-      sceneEl.addEventListener('loaded', renderNglScene);
+      self.el.sceneEl.addEventListener('loaded', renderNglScene);
     }
         
     function renderNglScene() { 
@@ -63,40 +74,35 @@ AFRAME.registerComponent('ngl-mol', {
         // Instantiate an NGL stage if it doesn't exist
         var stageObj3D = self.el.object3D; //new THREE.Object3D();
         self.NGLstage = new NGL.Stage("viewport", stageObj3D);
-        //self.el.setObject3D('mesh', stageObj3D);
         if (self.data.debug) {
           console.log("Debug mode on.");
           NGL.setDebug(true);
         }
       } else if (oldData.src != self.data.src) {
-        // NGL stage exists, but the PDB code changed
-        // clobber the stage
         console.error("Updating PDB code is no longer supported.");
-        //self.NGLstage.removeAllComponents();
         return;
       } else if (oldData.repAlgebra != self.data.repAlgebra) {
-        // NGL stage exists and PDB code is same, but the representations changed
-        var addReps = unparseRepAlg(self.data.repAlgebra);
-        // Iterate over all current reps and remove 
-        // any that are no longer in current repAlgebra
+        // Representation algebra changed
+        // Append new/repAlgebra representations to addReps
+        var addReps = [];
+        for (var key in self.data.repAlgebra) {
+          addReps.push(self.data.repAlgebra[key].rawRA);
+        }
+        // Iterate over old/existing representations,
+        // removing reps that are not in addReps from the stage
+        // and splicing out unchanged reps from addReps
         self.NGLstage.eachRepresentation(r => {
-          var rawRep = r.repAlg.join("=");
-          if (addReps.indexOf(rawRep) == -1) {
+          var oldidx = addReps.indexOf(r.repAlg.rawRA);
+          if (oldidx == -1) {
             self.structComp.removeRepresentation(r);
+            self.clog('Removing rep ' + r.repAlg.rawRA);
           } else {
-            addReps.splice(addReps.indexOf(rawRep), 1);
+            addReps.splice(oldidx, 1);
+            self.clog('Keeping rep ' + r.repAlg.rawRA);
           }
         });
-        // error handling
-        if (!self.structComp) { console.error("this.structComp is undefined"); }
-        // re-parse addReps to resemble this.data.repAlgebra
-        var parsedAddReps = parseRepAlg(addReps.join("++"), 
-                                        ["protein", "cartoon", "chainname"]);
-        // add all the remaining representations
-        self.addRepsFromRepAlg(self.structComp, parsedAddReps);
-        // re-render physics body to the current repAlgebra
-        // NOT YET SUPPORTED
-        //self.addVoxelCollidersByRes(self.structComp, self, self.getSeleFromRepAlg());
+        // Add all remaining reps in addReps
+        self.addRepsFromRepAlg(parseRepAlg(addReps.join("++")));
         return;
       } else {
         // Nothing important changed.
@@ -111,46 +117,9 @@ AFRAME.registerComponent('ngl-mol', {
         shapeComp.addRepresentation( "buffer" );
         return;
       } else if (self.data.src == "surfacebuffer_test") {
-        
-        // Basic mesh
-        /*
-        var shape = new NGL.Shape( "shape" );
-        shape.addMesh(
-          [ 0, 0, 0, 0, 10, 0, 0, 0, 7, 0, 1, -5, 0, 1, 0, 0, 0, 1 ],
-          [ 0, 1, 0, 0, 10, 0, 20, 1, 0, 0, 15, 0, 0, -8, 0, 0, 1, 0 ],
-          undefined, undefined, "My mesh"
-        );
-        var shapeComp = self.NGLstage.addComponentFromObject( shape );
-        shapeComp.addRepresentation( "buffer" );
-        */
-        
-        // Double-sided buffer
-        /*
-        var sphereGeometryBuffer = new NGL.SphereGeometryBuffer( {
-            position: new Float32Array( [ 0, 0, 0 ] ),
-            color: new Float32Array( [ 1, 0, 0 ] ),
-            radius: new Float32Array( [ 1 ] )
-        } );
-        var doubleSidedBuffer = new NGL.DoubleSidedBuffer( sphereGeometryBuffer );
-        */
-        
-        // Spheres buffer
-        /*
-        var shape = new NGL.Shape( "shape" );
-        var sphereBuffer = new NGL.SphereBuffer( {
-            position: new Float32Array( [ 0, 0, 0, 4, 0, 0 ] ),
-            color: new Float32Array( [ 1, 0, 0, 1, 1, 0 ] ),
-            radius: new Float32Array( [ 1, 1.2 ] )
-        } );
-        */
-        
         var meshBuffer = new NGL.SurfaceBuffer( {
-            position: new Float32Array(
-                [ 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 1 ]
-            ),
-            color: new Float32Array(
-                [ 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0 ]
-            )
+            position: new Float32Array([ 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 0, 1 ]),
+            color: new Float32Array([ 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0 ])
         } );
         
         // add whatever buffer to stage
@@ -158,65 +127,74 @@ AFRAME.registerComponent('ngl-mol', {
         shape.addBuffer( meshBuffer );
         var shapeComp = self.NGLstage.addComponentFromObject( shape );
         shapeComp.addRepresentation( "buffer" );
-
         return;
       }
       
       // load src into stage, add all necessary representations, etc.
       self.NGLstage.loadFile(self.data.src).then(function (sc) {
-        self.structComp = sc; 
-        // store translation vector as attribute
-        self.centerTransform = self.centerNglInWrapper(sc);
-        self.addRepsFromRepAlg(sc, self.data.repAlgebra);
-        self.addVoxelCollidersByRes(sc, self);
-        //self.removeVoxelColliders(self);
+        self.structComp = sc;
+        self.centerNglInWrapper();
+        self.addVoxelCollidersByRes();
+        self.addRepsFromRepAlg();
+        //self.removeVoxelColliders();
         //self.addInterface(sc, self);
       });
     }
 	},
   
+  /*
+   * Calls console.log(msg) only if this.data.debug == true
+   * Will also warn or throw error based on `type`
+   */
+  clog: function (msg, type="log") {
+    if (this.data.debug) {
+      switch(type) {
+        case "log":
+          console.log(msg);
+          break;
+        case "warn":
+          console.warn(msg);
+          break;
+        case "error":
+          console.error(msg);
+          break;
+      }
+    }
+  },
+  
   /**
    * Adds reprentation components to structure component `sc`
    * based on parsed representation algebra `ra`.
    */
-  addRepsFromRepAlg: function (sc, ra) {
-    console.log("Hello, molecule " + this.data.src + 
-                " with representation " + ra.join("; "));
+  addRepsFromRepAlg: function (ra=this.data.repAlgebra) {
+    this.clog("Hello, molecule " + this.data.src + " with repAlgebra");
+    this.clog(ra);
     // Add one RepresentationComponent to structureComponent
-    // for each entry in this.data.repAlgebra
-    for (var i = 0; i < ra.length; i++) {
-      // Parse each representation into selection,
-      // rep type, color split by =
-      if (ra[i][1] == "surface") {
-        var r = sc.addRepresentation("surface", {
-          sele: ra[i][0],
-          color: ra[i][2],
-          opacity: ra[i][3],
-          surfaceType: "sas",//ra[i][4],
-          probeRadius: ra[i][5]
-        });
-        console.log(r.repr.getColorParams());
-      } else if (ra[i][1] == "distance") {
-        console.error("Distance rep not supported yet");
-      } else {
-        var r = sc.addRepresentation(ra[i][1], {
-          sele: ra[i][0],
-          color: ra[i][2],
-          opacity: ra[i][3],
-        });
-        console.log(r);
+    // for each entry in ra
+    for (var key in ra) {
+      if (!ra[key].rawRA) {
+        continue; // null entry
       }
-      r.repAlg = ra[i]
+      if (ra[key]["rep"] == "distance") {
+        // transform atom1 and atom2 attributes into
+        // NGL-type atomPair list
+        ra[key].atomPair = [[ra[key].atom1, ra[key].atom2]];
+      }
+      // need a shallow copy of ra[key]
+      var r = this.structComp.addRepresentation(ra[key]["rep"], Object.assign({}, ra[key]));
+      r.repAlg = ra[key];
+      this.clog("Adding rep " + ra[key].rawRA);
+      this.clog(r);
     }
-    //sc.rebuildRepresentations();
+    //this.structComp.rebuildRepresentations();
   },
   
   /**
    * Centers structure component `sc` at origin of wrapper entity
    */
-  centerNglInWrapper: function(sc) {    
+  centerNglInWrapper: function() { 
     // Get bounding box as Box3
-    var boundingBox = sc.structure.getBoundingBox();
+    var boundingBox = this.structComp.structure.getBoundingBox();
     // Find center of box as Vector3. Same as struct.atomCenter()
     var center = boundingBox.getCenter();
     // Get inverse Vector3 for molecule translation
@@ -224,20 +202,28 @@ AFRAME.registerComponent('ngl-mol', {
     centInv.copy(center);
     centInv.multiplyScalar(-1);
     // Translate entire molecule to center of a-sphere wrapper
-    sc.setPosition(centInv.toArray());
+    this.structComp.setPosition(centInv.toArray());
     var attrClone = new THREE.Vector3();
     attrClone.copy(centInv);
+    this.centerTransform = attrClone;
     return attrClone;
   },
   
   /**
    * Adds physics colliders for every selection in
-   * NGL Selection instance `sele`
+   * str `sele`
    */
-  addVoxelCollidersByRes: function(sc, self, sele="*") {
+  addVoxelCollidersByRes: function(sele="*") {
+    // In case this.centerNglInWrapper has not been called yet
+    if (!this.centerTransform) {
+      console.error("this.centerTransform is undefined. Please " + 
+                    "call this.centerNglInWrapper first.")
+      return;
+    }
     var NGLsele = new NGL.Selection(sele);
+    var self = this;
     // residue iterator
-    sc.structure.eachResidue(function(res) {
+    this.structComp.structure.eachResidue(function(res) {
       // sum atom coordinate vectors...
       var resCenter = new THREE.Vector3();
       var atomCt = 0;
@@ -253,27 +239,23 @@ AFRAME.registerComponent('ngl-mol', {
       resCenter.multiplyScalar(100);
       resCenter.round();
       resCenter.divideScalar(100);
-
-      // user friendly
-      //console.log("Exported <a-sphere> to A-frame scene for residue " + 
-      //           res.qualifiedName());
-      
       // turn this sphere into part of the entity's physics body
-      //console.log(resCenter.toArray().join(" "));
       self.el.setAttribute("shape__" + res.chainIndex + "_" + res.index, {
         shape: "sphere",
         radius: 2,
-        offset: resCenter.toArray().join(" "),});
+        offset: resCenter.toArray().join(" ")
+      });
     }, NGLsele);
   },
   
   /**
    * Removes all components with name shape__*
-   * from this.el
+   * from this.el. Not currently supported by
+   * A-frame physics component
    */
-  removeVoxelColliders: function(self) {
+  removeVoxelColliders: function() {
     // get list of all components with name shape__*
-    var compsArray = Object.entries(self.el.components)
+    var compsArray = Object.entries(this.el.components);
     for (var i = 0; i < compsArray.length; i++) {
       var ca = compsArray[i][0].split("__");
       if (ca[1] && ca[0] == "shape") {
@@ -281,7 +263,7 @@ AFRAME.registerComponent('ngl-mol', {
         if (resid[1]) {
           // remove this component
           // not supported by physics component as of 5/9/2019
-          self.el.removeAttribute(compsArray[i][0]);
+          this.el.removeAttribute(compsArray[i][0]);
         }
       }
     }
@@ -333,13 +315,6 @@ AFRAME.registerComponent('ngl-mol', {
   },
   
   /**
-   * Returns repAlg selections as an NGL selection algebra
-   */
-  getSeleFromRepAlg: function(ra=this.data.repAlgebra) {
-    return getCol(ra,0).join(" OR ");
-  },
-  
-  /**
    * Placeholder/development method for testing other NGL representations
    */
   addOtherReps: function(sc) {
@@ -374,9 +349,9 @@ AFRAME.registerComponent('ngl-mol', {
    * Develoment keybinds <shift> + {number} for a series
    * of different attribute chnages
    */
-  addDevKeyBinds: function(self) {
-    //var tarEl = this.el;
-    var tarEl = self.el;
+  addDevKeyBinds: function() {
+    var self = this;
+    var tarEl = this.el;
     document.addEventListener('keydown', function (evt) {
       // <shift> + * for everything.
       if (!evt.shiftKey) { return; }
@@ -385,27 +360,29 @@ AFRAME.registerComponent('ngl-mol', {
         case 48: // 0
           break;
         case 49: // 1
-          tarEl.setAttribute('ngl-mol',{repAlgebra: "1-20=cartoon=chainname"});
+          tarEl.setAttribute('ngl-mol',{repAlgebra: "sele=1-20,rep=cartoon,color=chainname"});
           break;
         case 50: // 2
-          tarEl.setAttribute('ngl-mol',{repAlgebra: "protein=backbone++dna=backbone=atomindex++dna=base"});
+          tarEl.setAttribute('ngl-mol',{repAlgebra: "sele=protein,rep=backbone++sele=dna,rep=backbone,color=atomindex++sele=dna,rep=base"});
           break;
         case 51: // 3
-          tarEl.setAttribute('ngl-mol',{repAlgebra: "all=cartoon=chainname++ARG=licorice=element++dna=licorice=element"});
+          tarEl.setAttribute('ngl-mol',{repAlgebra: "++sele=1-30,rep=surface,color=electrostatic++sele=dna,rep=licorice,color=element"});
           break;
         case 52: // 4
-          tarEl.setAttribute('ngl-mol',{repAlgebra: "protein=rope=chainname++ALA=spacefill=element"});
+          tarEl.setAttribute('ngl-mol',{repAlgebra: "sele=protein,rep=rope,color=chainname++sele=ALA,rep=spacefill,color=element"});
           break;
         case 53: // 5
-          tarEl.setAttribute('ngl-mol',{repAlgebra: "all=cartoon=bactor++charged=licorice=element"});
+          tarEl.setAttribute('ngl-mol',{repAlgebra: "color=bactor++sele=charged,rep=licorice,color=element"});
           break;
         case 54: // 6
+          tarEl.setAttribute('ngl-mol',{repAlgebra: ""});
           break;
         case 55: // 7
           break;
         case 56: // 8
           break;
         case 57: // 9
+          self.structComp.rebuildRepresentations();
           break;
         case 189: // -
           break;
@@ -414,48 +391,68 @@ AFRAME.registerComponent('ngl-mol', {
       }
     });
   },
+  
+  /*
+   * Listen for rebuildNglRepsEvt event
+   * and call this.structComp.rebuildRepresentations()
+   */
+  addRebuildListener: function() {
+    var self = this;
+    document.addEventListener('rebuildNglRepsEvt', function (evt) {
+      self.clog("Rebuilding all NGL representations...");
+      self.structComp.rebuildRepresentations();
+    });
+  }
+  
 });
 
 /**
- * Parses str `raw` and returns as 2D array
+ * Determines whether `obj` is a non-array object
+ */
+function isObjNotArray(obj) {
+  return obj && (typeof obj === "object") && !(obj instanceof Array);
+}
+
+/**
+ * Parses str `raw` and returns as dictionary
  * First split by '++', second by '='
- * e.g. "protein=cartoon=bfactor++dna=ball+stick=atomindex"
- * becomes [["protein", "cartoon", "bfactor"],
- *          ["dna", "ball+stick", "atomindex"]]
- * Any representation entry with < 3 values is filled
- * by array `repDefault` elements
+ * e.g. "sele=protein,rep=cartoon,color=bfactor
+ * ++sele=dna,rep=ball+stick,color=atomindex"
+ * returns {0: {sele: "protein", rep: "cartoon", color: "bfactor"},
+ *          1: {sele: "dna", rep: "ball+stick", color: "atomindex"}}
  */
 function parseRepAlg(raw, repDefault) {
-  var parsed = [];
+  var parsed = {};
+  var def = {};
+  if (isObjNotArray(repDefault)) {
+    Object.assign(def, repDefault);
+  }
   var eachRep = raw.split('++');
   for (var i = 0; i < eachRep.length; i++) {
-    var eachWord = eachRep[i].split('=');
-    var repLen = Math.max(repDefault.length, eachWord.length);
-    for (var j = 0; j < repLen; j++) {
-      if (!eachWord[j]) {
-        eachWord[j] = repDefault[j];
+    var eachPair = eachRep[i].trim().split(',');
+    parsed[i] = {};
+    Object.assign(parsed[i], def);
+    for (var j = 0; j < eachPair.length; j++) {
+      var eachWord = eachPair[j].trim().split('=');
+      if (eachWord[0]) {
+        parsed[i][eachWord[0]] = eachWord[1].trim();
       }
     }
-    parsed.push(eachWord);
+    parsed[i]["rawRA"] = unparseRepAlg(parsed[i]);
   }
   return parsed; 
 }
 
-function unparseRepAlg(a) {
-  /**
-   * For 2D array `a`, joins along the second
-   * dimension with ,
-   */
-  var r = [];
-  for (var i = 0; i < a.length; i++) {
-     r.push(a[i].join("="));
-  }
-  return r;
-}
-
-// ngl-mol helper function
-// Parses ngl-mol.data.mutation_algebra
-function parseMutAlg(raw) {
-  if (raw == "") { return raw; }
-  //
+/*
+ * Represents a repAlgebra type object `obj` in string format,
+ * as if it were defined in HTML inline. Sorts keys before
+ * stringifying.
+ */
+function unparseRepAlg(obj) {
+  var str  = "";
+  Object.keys(obj).sort().forEach(function(key) {
+    if (str) { str += ","; }
+    str += key + "=" + obj[key];
+  });
+  return str;
 }
