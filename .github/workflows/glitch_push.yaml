@@ -1,6 +1,8 @@
+name: Push to Glitch
 on:
  pull_request:
   types: [closed]
+  branches: [ master ]
 jobs:
   repo-sync:
     if: github.event.pull_request.merged == true
