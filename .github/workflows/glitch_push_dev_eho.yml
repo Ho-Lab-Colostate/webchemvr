@@ -1,0 +1,19 @@
+name: Push to Glitch (Ethan's dev fork)
+on:
+  push:
+    branches:
+      - develop-eho
+jobs:
+  repo-sync:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+    - name: repo-sync
+      uses: wei/git-sync@v1
+      env:
+        SOURCE_REPO: "https://github.com/Ho-Lab-Colostate/webchemvr.git"
+        SOURCE_BRANCH: "develop-eho"
+        DESTINATION_REPO: ${{ secrets.glitch_git_URL_dev_eho }}
+        DESTINATION_BRANCH: "master"
+      with:
+        args: $SOURCE_REPO $SOURCE_BRANCH $DESTINATION_REPO $DESTINATION_BRANCH
