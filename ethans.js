@@ -1,4 +1,7 @@
 /**
+ * Test comment
+ */
+/**
  * Returns 1D array of a column (index `col`)
  * from `matrix`. Adapted from StackOverflow post
  * https://stackoverflow.com/questions/7848004/get-column-from-a-two-dimensional-array
@@ -62,7 +65,7 @@ AFRAME.registerComponent('avatar-downloader', {
           linkEl.setAttribute("href", dataStr);
           //linkEl.setAttribute("download", "scene.json");
         } else {
-          //console.log('is empty'); 
+          //console.log('is empty');
         }
       });
     }
@@ -73,11 +76,11 @@ AFRAME.registerComponent('teleporter', {
   init: function() {
     document.addEventListener('keydown', evt => this.teleport(evt));
   },
-  
+
   teleport: function() {
     console.log('tele');
   }
-  
+
 });
 
 // turn controller's physics presence on only while button held down
