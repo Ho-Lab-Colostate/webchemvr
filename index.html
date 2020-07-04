@@ -3,12 +3,15 @@
 	  <title>a-ngl</title>
     <!-- Original found at https://a-ngl.glitch.me/ -->
     
-    <script src="https://aframe.io/releases/0.8.2/aframe.min.js"></script>
+    <script src="https://aframe.io/releases/0.8.2/aframe.min.js"></script> 
     <script src="https://unpkg.com/super-hands/dist/super-hands.min.js"></script>
     <script src="//cdn.rawgit.com/donmccurdy/aframe-physics-system/v3.1.2/dist/aframe-physics-system.min.js"></script>
     <script src="https://unpkg.com/aframe-event-set-component@^4.1.1/dist/aframe-event-set-component.min.js"></script>
     <script src="https://unpkg.com/aframe-physics-extras/dist/aframe-physics-extras.min.js"></script>
     <script src="https://rawgit.com/feiss/aframe-environment-component/master/dist/aframe-environment-component.min.js"></script>
+    
+    <!-- A-frame extras for WASD movement (06/25/2020) IG-->
+    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.0/dist/aframe-extras.min.js"></script>
     
 	  <!-- NGL -->
     <script src="./a-ngl.js"></script>
@@ -34,7 +37,7 @@
     <!-- scene must have light="defaultLightsEnabled: true" to render correctly on Safari mobile VR mode -->
 	  <a-scene physics="debug: false" light="defaultLightsEnabled: true" background="color: #d8ecf9" avatar-downloader
              ><!--
-             avatar-replayer="src: ">-->
+             avatar-replayer="src: ">-->  
       <a-assets>
         <img id="grid" src="https://img.gs/bbdkhfbzkk/stretch/https://i.imgur.com/25P1geh.png" crossorigin="anonymous">
         <!-- Super Hands raycaster controller -->
@@ -70,11 +73,21 @@
       </a-assets>
 
       <!-- PLAYER -->
-      <a-entity id="cameraRig" position="0 .5 .8">
-        <!-- camera -->
-        <a-camera id="head" position="0 0 0">
+      
+      <!--left of here, trying to fix the movement problem that 0.8.2 has -->
+      
+      <a-entity id="cameraRig" position="0 0 0">
+
+        
+               <!-- camera -->
+        <a-camera id="head" position="0 .5 .8">
+          
+          
           <!--<a-cursor></a-cursor>-->
-        </a-camera>
+
+          
+        
+                  </a-camera>
         <!-- Super Hands controllers 
              mixin="controller-right-rc" breaks NGL stage -->
         <a-entity id="rhand" mixin="touch"
@@ -85,13 +98,17 @@
                   ><!--
                   teleport-controls="cameraRig: #cameraRig; teleportOrigin: #head;
                                      startEvents: teleportstart; endEvents: teleportend; type: line">--></a-entity>
-      </a-entity>
+      </a-entity> 
+
+
+
+
       
       <!-- Ground static body -->
       <a-box static-body width="100" height="1" depth="100" visible="true" color="grey" position="0 -.5 0"
              material="src: #grid; repeat: 100 100; transparent: true; metalness:0.6; roughness: 0.4;"></a-box>
     
-      <!-- "Cage" to keep molecules from rolling everywhere 
+       <!-- "Cage" to keep molecules from rolling everywhere 
       <a-entity>
         <a-box color="grey" position="-1 .2 0" static-body opacity="0.5"
                depth="2" width=".1" height=".4"></a-box>
@@ -101,7 +118,7 @@
                depth="2" width=".1" height=".4"></a-box>
         <a-box color="grey" position="0 .2 -1" static-body opacity="0.5"
                depth=".1" width="2" height=".4"></a-box>
-      </a-entity>-->
+      </a-entity> -->
       
       <!-- Molecules -->
       <a-entity scale=".02 .02 .02"
@@ -112,10 +129,20 @@
                          sele=13 or 10,rep=licorice,color=element++
                          sele=7-17.CA,rep=label,labelType=residue no,color=purple++
                          sele=7-17,rep=surface,surfaceType=vdw,color=electrostatic,opacity=.4;
-                         debug: true;"
+                         debug: false;"
                 hoverable grabbable stretchable draggable droppable
-                body="type: static; mass: 5; shape: none;"
+                body="type: dynamic; mass: 5; shape: none;"
       ></a-entity>
+      <!--<a-entity scale=".02 .02 .02"
+                position="-.1 2.5 0"
+                rotation="90 0 0"
+                ngl-mol="src:rcsb://6jnt;
+                         repAlgebra:sele=*,rep=cartoon,color=chainname,opacity=.4++
+                         sele=7-17,rep=surface,surfaceType=vdw,color=electrostatic,opacity=.4; 
+                         debug: false;"
+                hoverable grabbable stretchable draggable droppable
+                body="type: dynamic; mass: 5; shape: none;"
+      ></a-entity>-->
       <!--<a-entity scale="0.02 0.02 0.02"
                 ngl-mol="src: rcsb://1crn;
                            repAlgebra: protein=cartoon=element;
